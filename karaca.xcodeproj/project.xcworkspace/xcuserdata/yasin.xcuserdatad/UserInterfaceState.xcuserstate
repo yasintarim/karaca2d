@@ -124,7 +124,7 @@
 		<string>IDEWorkspaceTabController_C151A2CD-FEB5-4E06-845F-F7B6412BE6CB</string>
 		<string>IDEWindowTabBarIsVisible</string>
 		<true/>
-		<string>{{387, -2}, {1911, 1358}}</string>
+		<string>{{389, 60}, {1911, 1358}}</string>
 		<dict>
 			<key>$class</key>
 			<dict>
@@ -1746,7 +1746,7 @@
 			</dict>
 		</dict>
 		<string>file://localhost/Users/yasin/Documents/Projects/iOs/karaca/karaca.xcodeproj/</string>
-		<real>337636925.18431199</real>
+		<real>337637101.89182401</real>
 		<dict>
 			<key>$class</key>
 			<dict>
@@ -2326,6 +2326,10 @@
 				<dict>
 					<key>CF$UID</key>
 					<integer>226</integer>
+				</dict>
+				<dict>
+					<key>CF$UID</key>
+					<integer>180</integer>
 				</dict>
 			</array>
 		</dict>
@@ -3446,7 +3450,7 @@
 				<integer>311</integer>
 			</dict>
 		</dict>
-		<real>337636925.18377203</real>
+		<real>337637101.89129198</real>
 		<dict>
 			<key>$class</key>
 			<dict>
