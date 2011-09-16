@@ -1,5 +1,5 @@
 //
-//  HelloWorldLayer.mm
+//  Hellom_worldLayer.mm
 //  karaca
 //
 //  Created by yasin on 9/7/11.
@@ -14,7 +14,7 @@
 //This ratio defines how many pixels correspond to 1 Box2D "metre"
 //Box2D is optimized for objects of 1x1 metre therefore it makes sense
 //to define the ratio so that your most common object type is 1x1 metre.
-#define PTM_RATIO 32
+#define PTM_RATIO 100.0
 
 // enums that will be used as tags
 enum {
@@ -51,81 +51,10 @@ enum {
 		
 		// enable touches
 		self.isTouchEnabled = YES;
-		
-		// enable accelerometer
-		self.isAccelerometerEnabled = YES;
-		
-		CGSize screenSize = [CCDirector sharedDirector].winSize;
-		CCLOG(@"Screen width %0.2f screen height %0.2f",screenSize.width,screenSize.height);
-		
-		// Define the gravity vector.
-		b2Vec2 gravity;
-		gravity.Set(0.0f, -10.0f);
-		
-		// Do we want to let bodies sleep?
-		// This will speed up the physics simulation
-		bool doSleep = true;
-		
-		// Construct a world object, which will hold and simulate the rigid bodies.
-		world = new b2World(gravity, doSleep);
-		
-		world->SetContinuousPhysics(true);
-		
-		// Debug Draw functions
-		m_debugDraw = new GLESDebugDraw( PTM_RATIO );
-		world->SetDebugDraw(m_debugDraw);
-		
-		uint32 flags = 0;
-		flags += b2DebugDraw::e_shapeBit;
-//		flags += b2DebugDraw::e_jointBit;
-//		flags += b2DebugDraw::e_aabbBit;
-//		flags += b2DebugDraw::e_pairBit;
-//		flags += b2DebugDraw::e_centerOfMassBit;
-		m_debugDraw->SetFlags(flags);		
-		
-		
-		// Define the ground body.
-		b2BodyDef groundBodyDef;
-		groundBodyDef.position.Set(0, 0); // bottom-left corner
-		
-		// Call the body factory which allocates memory for the ground body
-		// from a pool and creates the ground box shape (also from a pool).
-		// The body is also added to the world.
-		b2Body* groundBody = world->CreateBody(&groundBodyDef);
-		
-		// Define the ground box shape.
-		b2PolygonShape groundBox;		
-		
-		// bottom
-		groundBox.SetAsEdge(b2Vec2(0,0), b2Vec2(screenSize.width/PTM_RATIO,0));
-		groundBody->CreateFixture(&groundBox,0);
-		
-		// top
-		groundBox.SetAsEdge(b2Vec2(0,screenSize.height/PTM_RATIO), b2Vec2(screenSize.width/PTM_RATIO,screenSize.height/PTM_RATIO));
-		groundBody->CreateFixture(&groundBox,0);
-		
-		// left
-		groundBox.SetAsEdge(b2Vec2(0,screenSize.height/PTM_RATIO), b2Vec2(0,0));
-		groundBody->CreateFixture(&groundBox,0);
-		
-		// right
-		groundBox.SetAsEdge(b2Vec2(screenSize.width/PTM_RATIO,screenSize.height/PTM_RATIO), b2Vec2(screenSize.width/PTM_RATIO,0));
-		groundBody->CreateFixture(&groundBox,0);
-		
-		
-		//Set up sprite
-		
-		CCSpriteBatchNode *batch = [CCSpriteBatchNode batchNodeWithFile:@"blocks.png" capacity:150];
-		[self addChild:batch z:0 tag:kTagBatchNode];
-		
-		[self addNewSpriteWithCoords:ccp(screenSize.width/2, screenSize.height/2)];
-		
-		CCLabelTTF *label = [CCLabelTTF labelWithString:@"Tap screen" fontName:@"Marker Felt" fontSize:32];
-		[self addChild:label z:0];
-		[label setColor:ccc3(0,0,255)];
-		label.position = ccp( screenSize.width/2, screenSize.height-50);
-		
-		[self schedule: @selector(tick:)];
+		[self setupWorld];
+        [self setupDebugDraw];
+        [self createGround];
+        [self schedule: @selector(tick:)];
 	}
 	return self;
 }
@@ -139,7 +68,7 @@ enum {
 	glDisableClientState(GL_COLOR_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	
-	world->DrawDebugData();
+	m_world->DrawDebugData();
 	
 	// restore default GL states
 	glEnable(GL_TEXTURE_2D);
@@ -147,43 +76,6 @@ enum {
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
 }
-
--(void) addNewSpriteWithCoords:(CGPoint)p
-{
-	CCLOG(@"Add sprite %0.2f x %02.f",p.x,p.y);
-	CCSpriteBatchNode *batch = (CCSpriteBatchNode*) [self getChildByTag:kTagBatchNode];
-	
-	//We have a 64x64 sprite sheet with 4 different 32x32 images.  The following code is
-	//just randomly picking one of the images
-	int idx = (CCRANDOM_0_1() > .5 ? 0:1);
-	int idy = (CCRANDOM_0_1() > .5 ? 0:1);
-	CCSprite *sprite = [CCSprite spriteWithBatchNode:batch rect:CGRectMake(32 * idx,32 * idy,32,32)];
-	[batch addChild:sprite];
-	
-	sprite.position = ccp( p.x, p.y);
-	
-	// Define the dynamic body.
-	//Set up a 1m squared box in the physics world
-	b2BodyDef bodyDef;
-	bodyDef.type = b2_dynamicBody;
-
-	bodyDef.position.Set(p.x/PTM_RATIO, p.y/PTM_RATIO);
-	bodyDef.userData = sprite;
-	b2Body *body = world->CreateBody(&bodyDef);
-	
-	// Define another box shape for our dynamic body.
-	b2PolygonShape dynamicBox;
-	dynamicBox.SetAsBox(.5f, .5f);//These are mid points for our 1m box
-	
-	// Define the dynamic body fixture.
-	b2FixtureDef fixtureDef;
-	fixtureDef.shape = &dynamicBox;	
-	fixtureDef.density = 1.0f;
-	fixtureDef.friction = 0.3f;
-	body->CreateFixture(&fixtureDef);
-}
-
-
 
 -(void) tick: (ccTime) dt
 {
@@ -197,11 +89,11 @@ enum {
 	
 	// Instruct the world to perform a single step of simulation. It is
 	// generally best to keep the time step and iterations fixed.
-	world->Step(dt, velocityIterations, positionIterations);
+	m_world->Step(dt, velocityIterations, positionIterations);
 
 	
 	//Iterate over the bodies in the physics world
-	for (b2Body* b = world->GetBodyList(); b; b = b->GetNext())
+	for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext())
 	{
 		if (b->GetUserData() != NULL) {
 			//Synchronize the AtlasSprites position and rotation with the corresponding body
@@ -212,44 +104,116 @@ enum {
 	}
 }
 
-- (void)ccTouchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+-(void)createGround
 {
-	//Add a new body/atlas sprite at the touched location
-	for( UITouch *touch in touches ) {
-		CGPoint location = [touch locationInView: [touch view]];
-		
-		location = [[CCDirector sharedDirector] convertToGL: location];
-		
-		[self addNewSpriteWithCoords: location];
-	}
+    CGSize winSize = [[CCDirector sharedDirector] winSize];
+    b2BodyDef groundBodyDef;
+    groundBodyDef.type = b2_staticBody;
+    groundBodyDef.position.Set(0, 0);
+    b2Body* groundBody = m_world->CreateBody(&groundBodyDef);
+    
+    float margin = 30.0f;
+    float m = margin / PTM_RATIO;
+    float w = (winSize.width - margin )/PTM_RATIO;
+    float h = (winSize.height - margin )/PTM_RATIO;
+    
+    b2Vec2 lowerLeft = b2Vec2(m,m);
+    b2Vec2 lowerRight = b2Vec2(w, m);
+    b2Vec2 upperLeft = b2Vec2(m, h);
+    b2Vec2 upperRight = b2Vec2(w, h);
+    
+    
+    b2PolygonShape groundShape;
+    
+    b2FixtureDef groundFixtureDef;
+    groundFixtureDef.shape = &groundShape;
+    groundFixtureDef.density = 1;
+    
+    groundShape.SetAsEdge(lowerLeft, lowerRight);
+    groundBody->CreateFixture(&groundFixtureDef);
+    
+    groundShape.SetAsEdge(upperLeft, upperRight);
+    groundBody->CreateFixture(&groundFixtureDef);
+
+    groundShape.SetAsEdge(upperLeft, lowerLeft);
+    groundBody->CreateFixture(&groundFixtureDef);
+    
+    groundShape.SetAsEdge(upperRight, lowerRight);
+    groundBody->CreateFixture(&groundFixtureDef);
+
+
 }
 
-- (void)accelerometer:(UIAccelerometer*)accelerometer didAccelerate:(UIAcceleration*)acceleration
-{	
-	static float prevX=0, prevY=0;
-	
-	//#define kFilterFactor 0.05f
-#define kFilterFactor 1.0f	// don't use filter. the code is here just as an example
-	
-	float accelX = (float) acceleration.x * kFilterFactor + (1- kFilterFactor)*prevX;
-	float accelY = (float) acceleration.y * kFilterFactor + (1- kFilterFactor)*prevY;
-	
-	prevX = accelX;
-	prevY = accelY;
-	
-	// accelerometer values are in "Portrait" mode. Change them to Landscape left
-	// multiply the gravity by 10
-	b2Vec2 gravity( -accelY * 10, accelX * 10);
-	
-	world->SetGravity( gravity );
+-(void)createBoxAtLocation:(CGPoint)location withSize:(CGSize)size
+{
+    b2BodyDef bodyDef;
+    bodyDef.type = b2_dynamicBody;
+    bodyDef.position.Set(location.x / PTM_RATIO, location.y / PTM_RATIO);
+    b2Body* body = m_world->CreateBody(&bodyDef);
+    
+    b2PolygonShape boxShape;
+    boxShape.SetAsBox(size.width / 2 / PTM_RATIO, size.height / 2 / PTM_RATIO);
+    
+    b2FixtureDef fixtureDef;
+    fixtureDef.density = 1;
+    fixtureDef.restitution = 0.3;
+    fixtureDef.shape = &boxShape;
+    
+    body->CreateFixture(&fixtureDef);
 }
 
+-(void)setupDebugDraw
+{
+    
+    // Debug Draw functions
+    m_debugDraw = new GLESDebugDraw( PTM_RATIO * [[CCDirector sharedDirector]contentScaleFactor]);
+    m_world->SetDebugDraw(m_debugDraw);
+    
+    uint32 flags = 0;
+    flags += b2DebugDraw::e_shapeBit;
+    
+    //		flags += b2DebugDraw::e_jointBit;
+    //		flags += b2DebugDraw::e_aabbBit;
+    //		flags += b2DebugDraw::e_pairBit;
+    //		flags += b2DebugDraw::e_centerOfMassBit;
+    m_debugDraw->SetFlags(flags);
+
+}
+-(void) setupWorld
+{
+    // Define the gravity vect or.
+    b2Vec2 gravity;
+    gravity.Set(0.0f, -10.0f);
+    
+    // Do we want to let bodies sleep?
+    // This will speed up the physics simulation
+    bool doSleep = true;
+    
+    // Construct a world object, which will hold and simulate the rigid bodies.
+    m_world = new b2World(gravity, doSleep);
+    
+    m_world->SetContinuousPhysics(true);
+}
+-(BOOL)ccTouchBegan:(UITouch *)touch withEvent:(UIEvent *)event
+{
+    CGPoint touchLocation = [touch locationInView:[touch view]];
+    touchLocation = [[CCDirector sharedDirector] convertToGL:touchLocation];
+    b2Vec2 locationWorld = b2Vec2(touchLocation.x / PTM_RATIO, touchLocation.y / PTM_RATIO);
+    
+    [self createBoxAtLocation:touchLocation withSize:CGSizeMake(25, 25)];
+    return TRUE;
+}
+
+- (void)registerWithTouchDispatcher {
+    [[CCTouchDispatcher sharedDispatcher] addTargetedDelegate:self
+                                                     priority:0 swallowsTouches:YES];
+}
 // on "dealloc" you need to release all your retained objects
 - (void) dealloc
 {
 	// in case you have something to dealloc, do it in this method
-	delete world;
-	world = NULL;
+	delete m_world;
+	m_world = NULL;
 	
 	delete m_debugDraw;
 

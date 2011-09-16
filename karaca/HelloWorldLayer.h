@@ -15,13 +15,16 @@
 // HelloWorldLayer
 @interface HelloWorldLayer : CCLayer
 {
-	b2World* world;
+	b2World* m_world;
 	GLESDebugDraw *m_debugDraw;
 }
 
 // returns a CCScene that contains the HelloWorldLayer as the only child
 +(CCScene *) scene;
-// adds a new sprite at a given coordinate
--(void) addNewSpriteWithCoords:(CGPoint)p;
+-(void) createGround;
+-(void) createBoxAtLocation:(CGPoint)location withSize:(CGSize)size;
+-(void) setupDebugDraw;
+-(void) setupWorld;
+
 
 @end
